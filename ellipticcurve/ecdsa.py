@@ -4,6 +4,8 @@ from .math import Math
 from .utils.integer import RandomInteger
 from .utils.binary import numberFromByteString
 from .utils.compatibility import *
+from .utils.file import dump_bytes, dump_int
+import logging
 
 
 class Ecdsa:
@@ -11,7 +13,9 @@ class Ecdsa:
     @classmethod
     def sign(cls, message, privateKey, hashfunc=sha256):
         byteMessage = hashfunc(toBytes(message)).digest()
+        logging.info('%s'%(dump_bytes(byteMessage,'byteMessage')))
         numberMessage = numberFromByteString(byteMessage)
+        logging.info('%s'%(dump_int(numberMessage,'numberMessage')))
         curve = privateKey.curve
 
         r, s, randSignPoint = 0, 0, None
@@ -24,7 +28,24 @@ class Ecdsa:
         if randSignPoint.y > curve.N:
             recoveryId += 2
 
+        logging.info('%s'%(dump_int(r,'r')))
+        logging.info('%s'%(dump_int(s,'s')))
         return Signature(r=r, s=s, recoveryId=recoveryId)
+
+    @classmethod
+    def encrypt(cls,message,publicKey):
+        retb = b''
+        rlen = 0
+        inbytes = toBytes(message)
+        curve = publicKey.curve
+        while rlen < len(inbytes):
+            pass
+
+
+        return retb
+
+
+
 
     @classmethod
     def verify(cls, message, signature, publicKey, hashfunc=sha256):
