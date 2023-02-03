@@ -9,6 +9,16 @@ import logging
 import struct
 
 
+def encrypt_value(numberMessage, curve,publicKey):
+    r , s , randSignPoint = 0, 0, None
+    while r == 0 or s == 0:
+        randNum = RandomInteger.between(1, curve.N - 1)
+        randSignPoint = Math.multiply(curve.G, n=randNum, A=curve.A, P=curve.P, N=curve.N)
+        r = randSignPoint.x % curve.N
+        s = ((numberMessage + r * publicKey.point.x) * (Math.inv(randNum, curve.N))) % curve.N
+    return r,s
+
+
 class Ecdsa:
 
     @classmethod
@@ -49,14 +59,44 @@ class Ecdsa:
                 while len(partbytes) < curve.length():
                     partbytes += struct.pack('B',pb)
             numberMessage = numberFromByteString(partbytes)
-            r , s = 0, 0
-            while r == 0 or s == 0:
-                randNum = RandomInteger.between(1, curve.N - 1)
-                randSignPoint = Math.multiply(curve.G, n=randNum, A=curve.A, P=curve.P, N=curve.N)
-                r = randSignPoint.x % curve.N
-                s = ((numberMessage + r * privateKey.secret) * (Math.inv(randNum, curve.N))) % curve.N
+            r , s = encrypt_value(numberMessage,curve,publicKey)
+            retb += byteStringFromHex(hexFromInt(r))
+            retb += byteStringFromHex(hexFromInt(s))
+            rlen += steplen
+            if rlen == len(inbytes) and steplen == curve.length():
+                # because is so align,
+                partbytes = b''
+                pb = curve.length()
+                while len(partbytes) < curve.length():
+                    partbytes += struct.pack('B',pb)
+                numberMessage = numberFromByteString(partbytes)
+                r,s = encrypt_value(numberMessage,curve,publicKey)
+                retb += byteStringFromHex(hexFromInt(r))
+                retb += byteStringFromHex(hexFromInt(s))
+        return retb
 
+    @classmethod
+    def decrypt(cls,encmsg,privateKey):
+        retb = b''
+        rlen = 0
+        curve = privateKey.curve
 
+        if len(encmsg) % (curve.length() * 2) != 0:
+            return None
+
+        while rlen < len(encmsg):
+            rv = encmsg[rlen:(rlen + curve.length())]
+            sv = encmsg[(rlen + curve.length()) : (rlen + curve.length() * 2)]
+            r = numberFromByteString(rv)
+            s = numberFromByteString(sv)
+            if not 1 <= r <= (curve.N -1) :
+                return None
+
+            if not 1 <= s <= (curve.N - 1):
+                return None
+
+            inv = Math.inv(s,curve.N)
+            u1 = 
 
         return retb
 
