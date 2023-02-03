@@ -6,6 +6,7 @@ from .utils.binary import numberFromByteString
 from .utils.compatibility import *
 from .utils.file import dump_bytes, dump_int
 import logging
+import struct
 
 
 class Ecdsa:
@@ -39,7 +40,22 @@ class Ecdsa:
         inbytes = toBytes(message)
         curve = publicKey.curve
         while rlen < len(inbytes):
-            pass
+            steplen = curve.length()
+            if (rlen + steplen) > len(inbytes):
+                steplen = len(inbytes) - rlen
+            partbytes = inbytes[rlen:(rlen + steplen)]
+            if len(partbytes) < curve.length():
+                pb = curve.length() - len(partbytes)
+                while len(partbytes) < curve.length():
+                    partbytes += struct.pack('B',pb)
+            numberMessage = numberFromByteString(partbytes)
+            r , s = 0, 0
+            while r == 0 or s == 0:
+                randNum = RandomInteger.between(1, curve.N - 1)
+                randSignPoint = Math.multiply(curve.G, n=randNum, A=curve.A, P=curve.P, N=curve.N)
+                r = randSignPoint.x % curve.N
+                s = ((numberMessage + r * privateKey.secret) * (Math.inv(randNum, curve.N))) % curve.N
+
 
 
         return retb
